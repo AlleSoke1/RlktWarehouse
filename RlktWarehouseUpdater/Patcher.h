@@ -17,6 +17,7 @@ public:
 
 	virtual void OnRecvPacket(char* pData, int nSize);
 
+	void OnRecvHandshake();
 	void OnRecvUpdateInfo(PSC_CheckForUpdates* pData);
 	void OnRecvTransferStart(PSC_TransferStart* pData);
 	void OnRecvTransferData(PSC_TransferData* pData);

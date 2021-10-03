@@ -34,11 +34,11 @@ namespace RlktWarehouseServer
         public bool OnSendPacket(WEPacketType packetType, byte[] data = null)
         {
             int packetLen = data != null ? data.Length : 0;
-            byte[] packetData = new byte[packetLen + 8];
+            byte[] packetData = new byte[packetLen + 6];
             using (RlktWriter writer = new RlktWriter(packetData))
             {
                 writer.Write((int)packetType);
-                writer.Write((ushort)(packetLen + 8));
+                writer.Write((ushort)(packetLen + 6));
 
                 if(data != null)
                     writer.Write(data);
@@ -60,7 +60,7 @@ namespace RlktWarehouseServer
 
         private bool OnRecvPacket(byte[] data)
         {
-            if (data.Length < 8)
+            if (data.Length < 6)
                 return false;
 
             using (RlktReader reader = new RlktReader(data))
@@ -68,15 +68,16 @@ namespace RlktWarehouseServer
                 int type = reader.ReadInt32();
                 int size = reader.ReadInt16();
 
-                Console.WriteLine("RecvPacket Type[{type,0:D}] Size[{size,0:D}]");
+                Console.WriteLine("RecvPacket Type[{0:D}] Size[{1:D}]", type, size);
 
                 WPacket packet = new();
 
                 switch((WEPacketType)type)
                 {
-                    case WEPacketType.HANDSHAKE:         handshakeCompleted = true; break;
+                    case WEPacketType.HANDSHAKE:         handshakeCompleted = true;  return true;   break;
                     case WEPacketType.CHECK_FOR_UPDATES: packet = new PWVersionCheck(reader, this); break;
-                    case WEPacketType.FILE_REQUEST:      packet = new PWFileTransfer(reader, this); break;
+                    case WEPacketType.FILE_REQUEST:      packet = new PWFileRequest(reader, this); break;
+                    case WEPacketType.FILE_DEPOSIT:      packet = new PWFileDeposit(reader, this); break;
                 }
 
                 if (packet.ProcessRequest() == false)
@@ -97,9 +98,12 @@ namespace RlktWarehouseServer
                 {
                     requestCount++;
                     NetworkStream networkStream = clientSocket.GetStream();
-                    networkStream.Read(bytesFrom, 0, (int)clientSocket.ReceiveBufferSize);
+                    int recvSize = networkStream.Read(bytesFrom, 0, (int)clientSocket.ReceiveBufferSize);
 
-                    if (OnRecvPacket(bytesFrom) == false)
+                    byte[] recvData = new byte[recvSize];
+                    Array.Copy(bytesFrom, recvData, recvSize);
+
+                    if (OnRecvPacket(recvData) == false)
                     {
                         Console.WriteLine(" >> Failed processing packet, connection closed.");
                         clientSocket.Close();

@@ -8,7 +8,8 @@ namespace RlktWarehouseServer
 {
     internal class Utils
     {
-        public static int MAX_WPACKET_SIZE = 65536;
+        public static int MAX_WPACKET_SIZE          = 65536;
+        public static int MAX_WPACKET_SIZE_UNENCAP  = 65530;
 
         public static string GetRandomName()
         {

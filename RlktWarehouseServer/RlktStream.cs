@@ -18,5 +18,13 @@ namespace RlktWarehouseServer
         public RlktWriter(byte[] data) : base(new MemoryStream(data)) { }
         public RlktWriter(MemoryStream stream) : base(stream) { }
 
+        public Stream GetStream() { return base.OutStream; }
+
+        public byte[] ToArray() 
+        {
+            MemoryStream ms = new MemoryStream();
+            GetStream().CopyTo(ms);
+            return ms.ToArray();
+        }
     }
 }

@@ -47,6 +47,7 @@ void CPatcher::OnRecvPacket(char* pData, int nSize)
 	{
 		switch (pPacket->base.type)
 		{
+			case WEPacketType::HANDSHAKE:			OnRecvHandshake(); break;
 			case WEPacketType::CHECK_FOR_UPDATES:	OnRecvUpdateInfo((PSC_CheckForUpdates*)pData); break;
 			case WEPacketType::XFER_START:			OnRecvTransferStart((PSC_TransferStart*)pData); break;
 			case WEPacketType::XFER_DATACHUNK:		OnRecvTransferData((PSC_TransferData*)pData); break;
@@ -64,6 +65,18 @@ void CPatcher::CheckForUpdates()
 
 	//Send check for update 
 	PCS_CheckForUpdates packet(m_nAppId, m_nCurVersion);
+	pNetwork->OnSendPacket((char*)&packet, sizeof(packet));
+}
+
+void CPatcher::OnRecvHandshake()
+{	
+	//Get network
+	CNetwork* pNetwork = g_NetworkManager.GetFirstActiveNetwork();
+	if (!pNetwork)
+		return;
+	
+	//
+	WPEmptyPacket packet(WEPacketType::HANDSHAKE);
 	pNetwork->OnSendPacket((char*)&packet, sizeof(packet));
 }
 
@@ -107,6 +120,6 @@ void CPatcher::OnRecvTransferData(PSC_TransferData* pData)
 
 void CPatcher::OnRecvTransferEnd(PSC_TransferEnd* pData)
 {
-	//Show update wnd
+	//Destroy window
 	m_pPatchWnd->DestroyWindow();
 }

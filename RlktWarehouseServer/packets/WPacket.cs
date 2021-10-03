@@ -15,6 +15,7 @@ namespace RlktWarehouseServer.packets
         XFER_START,
         XFER_DATACHUNK,
         XFER_END,
+        FILE_DEPOSIT,
     };
 
     internal class WPacket

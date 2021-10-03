@@ -28,7 +28,7 @@ namespace RlktWarehouseServer.packets
             int version = WarehouseManager.Instance.GetLatestVersionFromWarehouse(nAppId);
 
             //Log version
-            Console.WriteLine("Client requested version check from warehouse his version[{0:D}], warehouse version[{0:D}], appId[{0:D}]", nCurAppVersion, version, nAppId);
+            Console.WriteLine("Client requested version check from warehouse his version[{0:D}], warehouse version[{1:D}], appId[{2:D}]", nCurAppVersion, version, nAppId);
 
             //Write packet
             MemoryStream stream = new MemoryStream();

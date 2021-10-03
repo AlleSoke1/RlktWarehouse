@@ -79,7 +79,9 @@ struct PCS_FileRequest : WPacketBase
 struct PSC_TransferStart : WPacketBase
 {
 	unsigned int nAppSize;
-	PSC_TransferStart(int appSize) : nAppSize(appSize)
+	bool		 bIsCompressed;
+
+	PSC_TransferStart(int appSize, bool isCompressed) : nAppSize(appSize), bIsCompressed(isCompressed)
 	{
 		type = XFER_START;
 		len = sizeof(PSC_TransferStart);

@@ -25,6 +25,8 @@ namespace RlktWarehouseServer
 
         List<WarehouseItem> items = null;
 
+        private int reservedSize = 95; //-bool-uint //Original value was 100.
+
         public Warehouse(WarehouseAppId warehouseId)
         {
             this.warehouseAppId = warehouseId;
@@ -33,8 +35,7 @@ namespace RlktWarehouseServer
 
         public bool LoadItems()
         {
-            if (items != null)
-                items.Clear();
+            items?.Clear();
 
             items = new List<WarehouseItem>();
 
@@ -52,6 +53,10 @@ namespace RlktWarehouseServer
                     item.filename       = reader.ReadString();
                     item.size           = reader.ReadInt32();
                     item.version        = reader.ReadInt32();
+                    item.isCompressed   = reader.ReadBoolean();
+                    item.checksum       = reader.ReadUInt32();
+
+                    reader.BaseStream.Seek(reservedSize, SeekOrigin.Current);
 
                     items.Add(item);
                 }
@@ -71,6 +76,10 @@ namespace RlktWarehouseServer
                     writer.Write(item.filename);
                     writer.Write(item.size);
                     writer.Write(item.version);
+                    writer.Write(item.isCompressed);
+                    writer.Write(item.checksum);
+
+                    writer.Write(new string('\0', reservedSize).ToArray<char>());
                 }
             }
             
@@ -83,11 +92,11 @@ namespace RlktWarehouseServer
             string entryName = Utils.GetRandomName();
 
             //Check and create directory if it doesn't exist.
-            if (Directory.Exists(warehouseStorage) == false)
-                Directory.CreateDirectory(warehouseStorage);
+            if (Directory.Exists(GetWarehousePath()) == false)
+                Directory.CreateDirectory(GetWarehousePath());
 
             //Save file
-            File.WriteAllBytes(Path.Combine(warehouseStorage, entryName), data);
+            File.WriteAllBytes(Path.Combine(GetWarehousePath(), entryName), data);
 
             //Add an warehouse entry
             WarehouseItem item = new WarehouseItem();
@@ -118,12 +127,29 @@ namespace RlktWarehouseServer
             return version;
         }
 
-        private string GetWarehousePath()
+        public WarehouseItem GetLatestVersionItem()
+        {
+            WarehouseItem _item = null;
+
+            int version = 0;
+            foreach (WarehouseItem item in items)
+            {
+                if (item.version > version)
+                {
+                    version = item.version;
+                    _item = item;
+                }   
+            }
+
+            return _item;
+        }
+
+        public string GetWarehousePath()
         {
             return Path.Combine(warehouseStorage, warehouseAppId.ToString());
         }
 
-        private string GetWarehouseConfig()
+        public string GetWarehouseConfig()
         {
             return Path.Combine(GetWarehousePath(), warehouseFile);
         }

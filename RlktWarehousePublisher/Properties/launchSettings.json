@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RlktWarehousePublisher": {
+      "commandName": "Project",
+      "commandLineArgs": "127.0.0.1 9666  1 1 RlktWarehousePublisher.pdb"
+    }
+  }
+}
