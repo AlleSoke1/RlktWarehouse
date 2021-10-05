@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a9bfda9d-591e-480c-be42-f007a6b4bf0a}</ProjectGuid>
-    <RootNamespace>RlktWarehouseUpdater</RootNamespace>
+    <ProjectGuid>{5b2bc200-5dab-4e8d-b66e-f6c94f418432}</ProjectGuid>
+    <RootNamespace>RlktWarehouseUpdaterStatic</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -88,8 +88,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\RlktZstdImpl\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -104,7 +102,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\RlktZstdImpl\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,30 +139,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Network.h" />
-    <ClInclude Include="NetworkListener.h" />
-    <ClInclude Include="NetworkManager.h" />
-    <ClInclude Include="PacketDefs.h" />
-    <ClInclude Include="Patcher.h" />
-    <ClInclude Include="PatcherWnd.h" />
-    <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Network.cpp" />
-    <ClCompile Include="NetworkListener.cpp" />
-    <ClCompile Include="NetworkManager.cpp" />
-    <ClCompile Include="Patcher.cpp" />
-    <ClCompile Include="PatcherWnd.cpp" />
-    <ClCompile Include="stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Utils.cpp" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\RlktWarehouseUpdater\RlktWarehouseUpdater.vcxproj">
+      <Project>{a9bfda9d-591e-480c-be42-f007a6b4bf0a}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\RlktZstdImpl\RlktZstdImpl.vcxproj">
       <Project>{99469a28-5367-4131-a00e-806312e4770b}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="StaticLib.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="StaticLib.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

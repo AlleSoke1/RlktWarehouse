@@ -34,7 +34,7 @@ public:
 		char* pBuffer;
 		int pBufferIndex;
 
-		XferStruct() : nSize(0), nNowSize(0), bCompressed(false), nChecksum(0), pBuffer(NULL), pBufferIndex(0) { }
+		XferStruct() : nSize(0), nNowSize(0), bCompressed(false), nChecksum(0), pBuffer(NULL), pBufferIndex(0), nUncompressSize(0) { }
 		~XferStruct() { delete pBuffer; }
 	};
 	
