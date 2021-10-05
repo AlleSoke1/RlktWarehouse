@@ -14,5 +14,6 @@ namespace RlktWarehouseServer
         public int version;
         public bool isCompressed;
         public uint checksum;
+        public int uncompressSize;
     }
 }

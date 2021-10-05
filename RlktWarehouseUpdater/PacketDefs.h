@@ -2,7 +2,9 @@
 
 #pragma pack(push,1)
 
-#define MAX_WPACKET_SIZE 65528
+#define HEADER_SIZE	sizeof(WPacketBase)
+#define MAX_WPACKET_SIZE 64*1024
+#define MAX_WPACKET_SIZE_ENCAP MAX_WPACKET_SIZE - HEADER_SIZE
 
 #pragma region Base Packet
 
@@ -15,19 +17,21 @@ enum WEPacketType
 	XFER_START,
 	XFER_DATACHUNK,
 	XFER_END,
+	FILE_DEPOSIT,
+	PACKET_TYPE_END
 };
 
 struct WPacketBase
 {
 	WEPacketType type;
-	unsigned short len;
+	int len;
 	WPacketBase() : len(0), type(NOT_DEFINED) {}
 };
 
 struct WPacket
 {
 	WPacketBase base;
-	unsigned char data[MAX_WPACKET_SIZE];
+	unsigned char data[MAX_WPACKET_SIZE_ENCAP];
 };
 
 struct WPEmptyPacket : WPacketBase
@@ -80,8 +84,9 @@ struct PSC_TransferStart : WPacketBase
 {
 	unsigned int nAppSize;
 	bool		 bIsCompressed;
+	int			 nUncompressSize;
 
-	PSC_TransferStart(int appSize, bool isCompressed) : nAppSize(appSize), bIsCompressed(isCompressed)
+	PSC_TransferStart()
 	{
 		type = XFER_START;
 		len = sizeof(PSC_TransferStart);
@@ -90,19 +95,17 @@ struct PSC_TransferStart : WPacketBase
 
 struct PSC_TransferData : WPacketBase
 {
-	unsigned char data[MAX_WPACKET_SIZE];
-	PSC_TransferData(const void *pData, const int nSize)
+	unsigned char data[MAX_WPACKET_SIZE_ENCAP];
+	PSC_TransferData()
 	{
 		type = XFER_DATACHUNK;
-		memcpy_s(&data, nSize, pData, nSize);
-		len = sizeof(PSC_TransferData) - sizeof(data) + nSize;
 	}
 };
 
 struct PSC_TransferEnd : WPacketBase
 {
 	unsigned int nAppChecksum;
-	PSC_TransferEnd(unsigned int appChecksum) : nAppChecksum(appChecksum)
+	PSC_TransferEnd()
 	{
 		type = XFER_END;
 		len = sizeof(PSC_TransferEnd);

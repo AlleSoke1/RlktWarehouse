@@ -60,7 +60,7 @@ bool CNetwork::Connect()
 	m_RecvThread = std::thread(&CNetwork::RecvThread, this);
 	m_RecvThread.detach();
 
-	//
+	//Set socket connected status
 	m_bConnected = true;
 
 	return true;
@@ -76,7 +76,7 @@ bool CNetwork::Disconnect()
 		//Close socket failed.
 		WSACleanup();
 		return false;
-	}
+		}
 
 	WSACleanup();
 
@@ -107,10 +107,44 @@ void CNetwork::OnRecvPacket(char* pData, int nSize)
 		printf("[%s] RecvPacket [%d]\n", __FUNCTION__, pPacket->base.type);
 	}
 
+	//Handle Fragmentation
+	std::vector<WPacket*> vecPackets;
+
+	int iOffset = 0;
+	while (iOffset != nSize)
+	{
+		WPacket* pPacket = (WPacket*)(pData + iOffset);
+		if (pPacket)
+		{
+			int iPacketLen = pPacket->base.len;
+			if (iPacketLen <= MAX_WPACKET_SIZE)
+			{
+				WPacket* pNewPacket = (WPacket*)new char[iPacketLen];
+				memcpy_s(pNewPacket, iPacketLen, pData + iOffset, iPacketLen);
+
+				if(pNewPacket->base.type > WEPacketType::NOT_DEFINED && 
+					pNewPacket->base.type < WEPacketType::PACKET_TYPE_END)
+					vecPackets.push_back(pNewPacket);
+			}
+
+			iOffset += pPacket->base.len;
+		}
+	}
+	
+	//Notify all listeners
 	for (const auto& it : m_vecListeners)
 	{
-		it->OnRecvPacket(pData, nSize);
+		for (const auto& packet : vecPackets)
+		{
+			it->OnRecvPacket((char*)packet, packet->base.len);
+		}
 	}
+
+	//Free memory
+	for (auto& it : vecPackets)
+		if(it) delete it;
+
+	vecPackets.clear();
 }
 
 void CNetwork::RecvThread(CNetwork* pNetwork)
@@ -120,6 +154,9 @@ void CNetwork::RecvThread(CNetwork* pNetwork)
 
 	while (true)
 	{
+		if (pNetwork->m_bConnected == false)
+			break;
+
 		int iRecvSize = recv(pNetwork->m_Socket, data, MAX_WPACKET_SIZE, 0);
 		if (iRecvSize > 0)
 		{
@@ -127,7 +164,7 @@ void CNetwork::RecvThread(CNetwork* pNetwork)
 		}
 		else
 		{
-			printf("[%s]RecvError:%d\n", __FUNCTION__, iRecvSize);
+			printf("[%s] RecvError: %d\n", __FUNCTION__, iRecvSize);
 			break;
 		}
 	}

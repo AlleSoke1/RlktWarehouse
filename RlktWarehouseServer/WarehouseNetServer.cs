@@ -49,12 +49,12 @@ namespace RlktWarehouseServer
         {
             while (true)
             {
-                serverInfo.clientsCounter += 1;
-
                 TcpClient tcpclient = serverSocket.AcceptTcpClient();
 
                 WarehouseNetClient client = new WarehouseNetClient();
                 client.HandleClient(tcpclient);
+
+                serverInfo.clientsCounter += 1;
             }
         }
 

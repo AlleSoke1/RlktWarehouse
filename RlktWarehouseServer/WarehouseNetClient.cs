@@ -24,6 +24,8 @@ namespace RlktWarehouseServer
         {
             clientSocket = client;
 
+            //clientSocket.NoDelay = true; 
+
             recvThread = new Thread(RecvThread);
             recvThread.Start();
 
@@ -34,20 +36,19 @@ namespace RlktWarehouseServer
         public bool OnSendPacket(WEPacketType packetType, byte[] data = null)
         {
             int packetLen = data != null ? data.Length : 0;
-            byte[] packetData = new byte[packetLen + 6];
-            using (RlktWriter writer = new RlktWriter(packetData))
-            {
-                writer.Write((int)packetType);
-                writer.Write((ushort)(packetLen + 6));
+            MemoryStream stream = new MemoryStream();
+            RlktWriter writer = new RlktWriter(stream);
 
-                if(data != null)
-                    writer.Write(data);
-            }
+            writer.Write((int)packetType);
+            writer.Write((int)(packetLen + Utils.PACKET_HEADER_SIZE));
+
+            if(data != null)
+                writer.Write(data);
 
             try
             {
                 NetworkStream networkStream = clientSocket.GetStream();
-                networkStream.Write(packetData, 0, packetData.Length);
+                networkStream.Write(stream.ToArray(), 0, (int)stream.Length);
                 networkStream.Flush();
             }
             catch (Exception ex)
@@ -58,23 +59,17 @@ namespace RlktWarehouseServer
             return true;
         }
 
-        private bool OnRecvPacket(byte[] data)
+        private bool OnRecvPacket(WEPacketType type, byte[] data)
         {
-            if (data.Length < 6)
-                return false;
-
             using (RlktReader reader = new RlktReader(data))
             {
-                int type = reader.ReadInt32();
-                int size = reader.ReadInt16();
-
-                Console.WriteLine("RecvPacket Type[{0:D}] Size[{1:D}]", type, size);
+                reader.BaseStream.Seek(8, SeekOrigin.Current);
 
                 WPacket packet = new();
 
-                switch((WEPacketType)type)
+                switch(type)
                 {
-                    case WEPacketType.HANDSHAKE:         handshakeCompleted = true;  return true;   break;
+                    case WEPacketType.HANDSHAKE:         handshakeCompleted = true; break;
                     case WEPacketType.CHECK_FOR_UPDATES: packet = new PWVersionCheck(reader, this); break;
                     case WEPacketType.FILE_REQUEST:      packet = new PWFileRequest(reader, this); break;
                     case WEPacketType.FILE_DEPOSIT:      packet = new PWFileDeposit(reader, this); break;
@@ -90,25 +85,48 @@ namespace RlktWarehouseServer
         private void RecvThread()
         {
             int requestCount = 0;
-            byte[] bytesFrom = new byte[Utils.MAX_WPACKET_SIZE];
+            byte[] data = new byte[Utils.MAX_WPACKET_SIZE];
+            RlktWriter writer = new RlktWriter();
+            int packetType = 0;
+            int packetSize = 0;
 
             while (true)
             {
                 try
                 {
                     requestCount++;
+
+                    if (clientSocket.Connected == false)
+                        break;
+
                     NetworkStream networkStream = clientSocket.GetStream();
-                    int recvSize = networkStream.Read(bytesFrom, 0, (int)clientSocket.ReceiveBufferSize);
+                    int readSize = networkStream.Read(data, 0, (int)Utils.MAX_WPACKET_SIZE);
+                    if (readSize <= 0)
+                        continue;
+             
+                    using (RlktReader reader = new RlktReader(data))
+                    {
+                        if (writer.BaseStream.Length == 0)
+                        {
+                            packetType = reader.ReadInt32();
+                            packetSize = reader.ReadInt32();
+                        }
 
-                    byte[] recvData = new byte[recvSize];
-                    Array.Copy(bytesFrom, recvData, recvSize);
+                        writer.Write(data, (int)writer.BaseStream.Position, packetSize);
 
-                    if (OnRecvPacket(recvData) == false)
+                        if (packetSize > readSize)
+                            continue;
+                    }
+
+                    //Process the packet
+                    if (OnRecvPacket((WEPacketType)packetType, writer.ToArray()) == false)
                     {
                         Console.WriteLine(" >> Failed processing packet, connection closed.");
                         clientSocket.Close();
                         break;
                     }
+
+                    writer = new RlktWriter();
                 }
                 catch (Exception ex)
                 {

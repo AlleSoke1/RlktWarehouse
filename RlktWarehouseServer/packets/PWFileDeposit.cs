@@ -10,7 +10,10 @@ namespace RlktWarehouseServer.packets
     {
         int nAppId;
         int nNewAppVersion;
+        string executableName;
+        bool isCompressed;
         int appSize;
+        int appOrigSize;
         byte[] appData;
         WarehouseNetClient client;
 
@@ -18,6 +21,9 @@ namespace RlktWarehouseServer.packets
         {
             nAppId         = reader.ReadInt32();
             nNewAppVersion = reader.ReadInt32();
+            executableName = reader.ReadString();
+            isCompressed   = reader.ReadBoolean();
+            appOrigSize    = reader.ReadInt32();
             appSize        = reader.ReadInt32();
             appData        = reader.ReadBytes(appSize);
 
@@ -26,21 +32,20 @@ namespace RlktWarehouseServer.packets
 
         public override bool ProcessRequest()
         {
+            bool result = false;
             Warehouse warehouse = WarehouseManager.Instance.GetWarehouseByAppId((WarehouseAppId)nAppId);
-            if (warehouse == null)
+            if (warehouse != null)
             {
-                Console.WriteLine("Failed to get warehouse, reqAppId[{0:D}], newAppVersion[{0:D}]", nAppId, nNewAppVersion);
+                result = warehouse.AddItemToWarehouse(appData, appSize, executableName, nNewAppVersion, isCompressed, appOrigSize);
             }
-
-            warehouse.AddItemToWarehouse(appData, appSize, "test", nNewAppVersion);
 
             using (RlktWriter writer = new RlktWriter())
             {
-                writer.Write(true);
+                writer.Write(result);
                 client.OnSendPacket(WEPacketType.FILE_DEPOSIT, writer.ToArray());
             }
 
-            return true;
+            return false;
         }
 
     }

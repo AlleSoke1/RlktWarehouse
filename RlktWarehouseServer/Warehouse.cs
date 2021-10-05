@@ -25,7 +25,7 @@ namespace RlktWarehouseServer
 
         List<WarehouseItem> items = null;
 
-        private int reservedSize = 95; //-bool-uint //Original value was 100.
+        private int reservedSize = 91; //-bool-uint-int //Original value was 100.
 
         public Warehouse(WarehouseAppId warehouseId)
         {
@@ -45,23 +45,26 @@ namespace RlktWarehouseServer
             using (RlktReader reader = new RlktReader(File.ReadAllBytes(GetWarehouseConfig())))
             {
                 int itemCount = reader.ReadInt32();
-                for(int i=0;i<itemCount; i++)
+                for (int i = 0; i < itemCount; i++)
                 {
                     WarehouseItem item = new WarehouseItem();
 
-                    item.warehouseName  = reader.ReadString();
-                    item.filename       = reader.ReadString();
-                    item.size           = reader.ReadInt32();
-                    item.version        = reader.ReadInt32();
-                    item.isCompressed   = reader.ReadBoolean();
-                    item.checksum       = reader.ReadUInt32();
+                    item.warehouseName = reader.ReadString();
+                    item.filename = reader.ReadString();
+                    item.size = reader.ReadInt32();
+                    item.version = reader.ReadInt32();
+                    item.isCompressed = reader.ReadBoolean();
+                    item.checksum = reader.ReadUInt32();
+                    item.uncompressSize = reader.ReadInt32();
 
                     reader.BaseStream.Seek(reservedSize, SeekOrigin.Current);
 
                     items.Add(item);
+
+                    Console.WriteLine("[Warehouse {0:s}] Warehouse loading item {1:s}, {2:s}, {3:d}", warehouseAppId.ToString(), item.warehouseName, item.filename, item.version);
                 }
-            }            
-                
+            }
+
             return true;
         }
 
@@ -78,16 +81,27 @@ namespace RlktWarehouseServer
                     writer.Write(item.version);
                     writer.Write(item.isCompressed);
                     writer.Write(item.checksum);
+                    writer.Write(item.uncompressSize);
 
                     writer.Write(new string('\0', reservedSize).ToArray<char>());
                 }
+
+                byte[] DATA = writer.ToArray();
+                File.WriteAllBytes(GetWarehouseConfig(), DATA);
             }
             
             return true;
         }
 
-        public bool AddItemToWarehouse(byte[] data, int size, string origName, int version)
+        public bool AddItemToWarehouse(byte[] data, int size, string origName, int version, bool isCompressed, int originalSize = 0)
         {
+            //Check if version already exists in the warehouse.
+            foreach (WarehouseItem curItem in items)
+            {
+                if (curItem.version == version)
+                    return false;
+            }
+
             //Get random entry name
             string entryName = Utils.GetRandomName();
 
@@ -105,6 +119,9 @@ namespace RlktWarehouseServer
             item.filename = origName;
             item.size = size;
             item.version = version;
+            item.isCompressed = isCompressed;
+            item.checksum = Utils.GetChecksum(data);
+            item.uncompressSize = originalSize;
 
             items.Add(item);
 

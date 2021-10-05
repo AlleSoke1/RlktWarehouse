@@ -9,20 +9,22 @@
 
 #include "Patcher.h"
 
-#define AppID 1
+
+#define AppID 0
 #define AppVersion 1
 
-#define IpAddr "localhost"
+#define IpAddr "127.0.0.1"
 #define Port 9666
 
 #pragma comment(lib, "wsock32.lib")
 #pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "Comctl32.lib")
 
 int main(int argc, char** argv)
 {
 	CPatcher *pPatcher = new CPatcher(IpAddr, Port);
 	pPatcher->Initialize(AppID, AppVersion);
-	pPatcher->CheckForUpdates();
+	///pPatcher->CheckForUpdates();
 
 	/*
 	PCS_CheckForUpdates packet(AppID, AppVersion);

@@ -23,6 +23,30 @@ public:
 	void OnRecvTransferData(PSC_TransferData* pData);
 	void OnRecvTransferEnd(PSC_TransferEnd* pData);
 
+	struct XferStruct
+	{
+		int nSize;
+		int nNowSize;
+		bool bCompressed;
+		int nUncompressSize;
+		unsigned int nChecksum;
+
+		char* pBuffer;
+		int pBufferIndex;
+
+		XferStruct() : nSize(0), nNowSize(0), bCompressed(false), nChecksum(0), pBuffer(NULL), pBufferIndex(0) { }
+		~XferStruct() { delete pBuffer; }
+	};
+	
+	enum TransferResult
+	{
+		SUCCESS,
+		TRANSFER_FAILED,
+		CHECKSUM_FAILED,
+	};
+
+
+	void OnTransferResult(TransferResult result);
 
 protected:
 	int m_nAppId;
@@ -30,6 +54,8 @@ protected:
 	
 	std::string m_strIpAddr;
 	int m_nPort;
+
+	XferStruct m_XferData;
 
 	CPatcherWnd* m_pPatchWnd;
 };

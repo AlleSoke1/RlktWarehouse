@@ -50,6 +50,7 @@ namespace RlktWarehouseServer.packets
             {
                 writer.Write((uint)warehouseItem.size);
                 writer.Write(warehouseItem.isCompressed);
+                writer.Write(warehouseItem.uncompressSize);
 
                 client.OnSendPacket(WEPacketType.XFER_START, writer.ToArray());
             }
@@ -59,12 +60,12 @@ namespace RlktWarehouseServer.packets
             using (var file = File.OpenRead(warehouseFile))
             {
                 int bytesRead;
-                var buffer = new byte[Utils.MAX_WPACKET_SIZE_UNENCAP];
+                var buffer = new byte[Utils.MAX_WPACKET_SIZE_ENCAP];
                 while ((bytesRead = file.Read(buffer, 0, buffer.Length)) > 0)
                 {
                     using (RlktWriter writer = new RlktWriter())
                     {
-                        writer.Write(buffer);
+                        writer.Write(buffer, 0, bytesRead);
                         client.OnSendPacket(WEPacketType.XFER_DATACHUNK, writer.ToArray());
                     }
                 }

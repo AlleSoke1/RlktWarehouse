@@ -1,10 +1,12 @@
 #include "stdafx.h"
 #include "Patcher.h"
-
 #include "PatcherWnd.h"
-
 #include "Network.h"
 #include "NetworkManager.h"
+#include "Utils.h"
+#include "zstd.hpp"
+#include <fstream>
+#pragma comment(lib, "Shlwapi.lib")
 
 CPatcher::CPatcher(std::string strIpAddr, int nPort)
 	: m_nAppId(0)
@@ -78,6 +80,9 @@ void CPatcher::OnRecvHandshake()
 	//
 	WPEmptyPacket packet(WEPacketType::HANDSHAKE);
 	pNetwork->OnSendPacket((char*)&packet, sizeof(packet));
+
+	//
+	CheckForUpdates();
 }
 
 void CPatcher::OnRecvUpdateInfo(PSC_CheckForUpdates* pData)
@@ -95,7 +100,7 @@ void CPatcher::OnRecvUpdateInfo(PSC_CheckForUpdates* pData)
 				if (!pNetwork)
 					return;
 
-				//Send check for update 
+				//Send a file request 
 				PCS_FileRequest packet(m_nAppId, pData->nAppVersion);
 				pNetwork->OnSendPacket((char*)&packet, sizeof(packet));
 
@@ -103,23 +108,147 @@ void CPatcher::OnRecvUpdateInfo(PSC_CheckForUpdates* pData)
 				m_pPatchWnd->InitWindow();
 			}
 			break;
+			case IDNO:
+			{
+				//Gracefully close all active sockets
+				g_NetworkManager.CloseAllNetworks();
+			}
+			break;
 		}
+	}
+	else
+	{
+		//Gracefully close all active sockets
+		g_NetworkManager.CloseAllNetworks();
 	}
 }
 
-
 void CPatcher::OnRecvTransferStart(PSC_TransferStart* pData)
 {
+	m_XferData.nNowSize = 0;
+	m_XferData.nSize = pData->nAppSize;
+	m_XferData.bCompressed = pData->bIsCompressed;
+	m_XferData.nUncompressSize = pData->nUncompressSize;
+	m_XferData.nChecksum = 0;
 
+	if (m_XferData.pBuffer)
+		delete[] m_XferData.pBuffer;
+	m_XferData.pBuffer = new char[m_XferData.nSize];
+	m_XferData.pBufferIndex = 0;
+
+	memset(m_XferData.pBuffer, 0, m_XferData.nSize);
 }
 
 void CPatcher::OnRecvTransferData(PSC_TransferData* pData)
 {
+	int iDataLen = pData->len - sizeof(WPacketBase);
 
+	for (int i = 0; i < iDataLen; i++)
+	{
+		m_XferData.pBuffer[m_XferData.pBufferIndex++] = pData->data[i];
+	}
+
+	m_XferData.nNowSize += iDataLen;
+	m_pPatchWnd->OnProgressUpdate(m_XferData.nNowSize, m_XferData.nSize);
 }
 
 void CPatcher::OnRecvTransferEnd(PSC_TransferEnd* pData)
 {
+	//Integrity check
+	if (m_XferData.nNowSize != m_XferData.nSize)
+	{
+		printf("[%s] Transfer did not ended successfully, [%d out of %d bytes]\n", __FUNCTION__, m_XferData.nNowSize, m_XferData.nSize);
+		OnTransferResult(TransferResult::TRANSFER_FAILED);
+		return;
+	}
+
+	//Checksum
+	UINT nChecksum = NetUtils::GetChecksum((const unsigned char*)m_XferData.pBuffer, m_XferData.nSize);
+	if (nChecksum != pData->nAppChecksum)
+	{
+		printf("[%s] Transfer did not ended successfully, checksum is missmatched.\n", __FUNCTION__);
+		OnTransferResult(TransferResult::CHECKSUM_FAILED);
+		return;
+	}
+
+	//Get current executable name
+	TCHAR buffer[MAX_PATH] = { 0 };
+	if (GetModuleFileName(NULL, buffer, MAX_PATH) == NULL)
+	{
+		OnTransferResult(TransferResult::TRANSFER_FAILED);
+		return;
+	}
+
+	//Rename old executable
+	std::wstring newExeName(buffer);
+	newExeName += L".old";
+	DeleteFile(newExeName.c_str());
+	_wrename(buffer, newExeName.c_str());
+
+	//If is compressed, decompress first.
+	if (m_XferData.bCompressed)
+	{
+		char* pBuffer = new char[m_XferData.nUncompressSize];
+		int iResult = ZSTD_decompress(pBuffer, m_XferData.nUncompressSize, m_XferData.pBuffer, m_XferData.nSize);
+		if (iResult <= 0)
+		{
+			printf("[%s] ZStd Decompress Failed with errcode[%d]\n", __FUNCTION__, iResult);		
+			OnTransferResult(TransferResult::TRANSFER_FAILED);
+			return;
+		}
+
+		m_XferData.pBuffer = pBuffer;
+		m_XferData.nSize = iResult;
+	}
+
+	//Flush to disk
+	std::ofstream outFile(buffer, std::ios::out | std::ios::binary);
+	if (outFile.is_open())
+	{
+		outFile.write((const char*)m_XferData.pBuffer, m_XferData.nSize);
+		outFile.close();
+	}
+
 	//Destroy window
 	m_pPatchWnd->DestroyWindow();
+
+	//Gracefully close all active sockets
+	g_NetworkManager.CloseAllNetworks();
+
+	//Get command line and restart process
+	std::wstring cmdLine = GetCommandLineW();
+
+	SHELLEXECUTEINFO shExecInfo;
+	shExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
+	shExecInfo.fMask = NULL;
+	shExecInfo.hwnd = NULL;
+	shExecInfo.lpVerb = L"open";
+	shExecInfo.lpFile = buffer;
+	shExecInfo.lpParameters = cmdLine.c_str();
+	shExecInfo.lpDirectory = NULL;
+	shExecInfo.nShow = SW_NORMAL;
+	shExecInfo.hInstApp = NULL;
+	ShellExecuteEx(&shExecInfo);
+
+	Sleep(500);
+
+	ExitProcess(0);
+}
+
+void CPatcher::OnTransferResult(TransferResult result)
+{
+	switch (result)
+	{
+		case TransferResult::TRANSFER_FAILED:
+		{
+			//Retry?
+		}
+		break;
+
+		case TransferResult::CHECKSUM_FAILED:
+		{
+			//Retry?
+		}
+		break;
+	}
 }

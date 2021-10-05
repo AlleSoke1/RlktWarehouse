@@ -16,10 +16,11 @@ namespace RlktWarehouseServer.packets
         XFER_DATACHUNK,
         XFER_END,
         FILE_DEPOSIT,
+        PACKET_TYPE_END,
     };
 
     internal class WPacket
     {
-        virtual public bool ProcessRequest() { return false; }
+        virtual public bool ProcessRequest() { return true; }
     }
 }

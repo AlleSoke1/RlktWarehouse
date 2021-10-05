@@ -31,4 +31,15 @@ namespace NetUtils
 
         return result;
     }
+
+    unsigned int GetChecksum(const unsigned char* pData, int nSize)
+    {
+        unsigned long long nChecksum = 0;
+        for (int i = 0; i < nSize; i++)
+        {
+            nChecksum += pData[i];
+        }
+
+        return nChecksum % UINT32_MAX;
+    }
 }
