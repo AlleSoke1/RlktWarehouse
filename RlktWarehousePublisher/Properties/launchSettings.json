@@ -1,8 +1,7 @@
 {
   "profiles": {
     "RlktWarehousePublisher": {
-      "commandName": "Project",
-      "commandLineArgs": "gls.ralukat.eu 9666 0 true M:\\x2project\\X2Lib\\DebugWarehouse\\RlktWarehouseVersion.h .\\ConsoleApplication1.exe"
+      "commandName": "Project"
     }
   }
 }
