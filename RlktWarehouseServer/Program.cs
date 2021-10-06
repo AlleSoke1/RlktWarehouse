@@ -6,8 +6,9 @@ namespace RlktWarehouseServer
     {
         static void Main(string[] args)
         {
-            WarehouseNetServer netServer = new WarehouseNetServer(9666);
+            WarehouseManager.Initialize();
 
+            WarehouseNetServer netServer = new WarehouseNetServer(9666);
             netServer.StartServer();
             netServer.MainServer();
         }

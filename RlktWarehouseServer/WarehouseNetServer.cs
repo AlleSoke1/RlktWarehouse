@@ -57,6 +57,5 @@ namespace RlktWarehouseServer
                 serverInfo.clientsCounter += 1;
             }
         }
-
     }
 }

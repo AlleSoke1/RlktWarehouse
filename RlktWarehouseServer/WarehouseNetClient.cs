@@ -35,12 +35,15 @@ namespace RlktWarehouseServer
 
         public bool OnSendPacket(WEPacketType packetType, byte[] data = null)
         {
+            if (clientSocket.Connected == false)
+                return false;
+
             int packetLen = data != null ? data.Length : 0;
             MemoryStream stream = new MemoryStream();
             RlktWriter writer = new RlktWriter(stream);
 
             writer.Write((int)packetType);
-            writer.Write((int)(packetLen + Utils.PACKET_HEADER_SIZE));
+            writer.Write(packetLen + Utils.PACKET_HEADER_SIZE);
 
             if(data != null)
                 writer.Write(data);
@@ -63,8 +66,6 @@ namespace RlktWarehouseServer
         {
             using (RlktReader reader = new RlktReader(data))
             {
-                reader.BaseStream.Seek(8, SeekOrigin.Current);
-
                 WPacket packet = new();
 
                 switch(type)
@@ -86,9 +87,9 @@ namespace RlktWarehouseServer
         {
             int requestCount = 0;
             byte[] data = new byte[Utils.MAX_WPACKET_SIZE];
-            RlktWriter writer = new RlktWriter();
-            int packetType = 0;
-            int packetSize = 0;
+            //RlktWriter writer = new RlktWriter();
+            int offset = 0;
+            Queue<(int, byte[])> qPackets = new Queue<(int, byte[])>();
 
             while (true)
             {
@@ -106,27 +107,36 @@ namespace RlktWarehouseServer
              
                     using (RlktReader reader = new RlktReader(data))
                     {
-                        if (writer.BaseStream.Length == 0)
+                        while (offset != readSize)
                         {
-                            packetType = reader.ReadInt32();
-                            packetSize = reader.ReadInt32();
+                            int packetType = reader.ReadInt32();
+                            int packetSize = reader.ReadInt32();
+
+                            byte[] packet = reader.ReadBytes(packetSize - Utils.PACKET_HEADER_SIZE);
+                            qPackets.Enqueue((packetType,packet));
+
+                            offset += packetSize;
                         }
-
-                        writer.Write(data, (int)writer.BaseStream.Position, packetSize);
-
-                        if (packetSize > readSize)
-                            continue;
+                       
+                        //if (packetSize > offset)
+                        //    continue;
                     }
 
-                    //Process the packet
-                    if (OnRecvPacket((WEPacketType)packetType, writer.ToArray()) == false)
+                    for (int i = 0; i < qPackets.Count; i++)
                     {
-                        Console.WriteLine(" >> Failed processing packet, connection closed.");
-                        clientSocket.Close();
-                        break;
+                        (int,byte[]) packet = qPackets.Dequeue();
+                        //Process the packet
+                        if (OnRecvPacket((WEPacketType)packet.Item1, packet.Item2) == false)
+                        {
+                            Console.WriteLine(" >> Failed processing packet, connection closed.");
+                            clientSocket.Close();
+                            break;
+                        }
                     }
+                   
 
-                    writer = new RlktWriter();
+                    //writer = new RlktWriter();
+                    offset = 0;
                 }
                 catch (Exception ex)
                 {

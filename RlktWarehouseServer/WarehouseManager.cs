@@ -8,8 +8,7 @@ namespace RlktWarehouseServer
 {
     internal class WarehouseManager
     {
-        public static WarehouseManager warehouseManager = new WarehouseManager();
-        public static WarehouseManager Instance {  get {  return warehouseManager; } }
+        public static WarehouseManager Instance = null;
 
         List<Warehouse> list = new List<Warehouse>();
         public WarehouseManager()
@@ -19,6 +18,12 @@ namespace RlktWarehouseServer
             list.Add(new Warehouse(WarehouseAppId.AppId3));
             list.Add(new Warehouse(WarehouseAppId.AppId4));
             list.Add(new Warehouse(WarehouseAppId.AppId5));
+        }
+
+        public static void Initialize()
+        {
+            if (Instance == null)
+                Instance = new WarehouseManager();
         }
 
         public int GetLatestVersionFromWarehouse(int warehouseAppId)
