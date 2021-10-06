@@ -2,7 +2,7 @@
   "profiles": {
     "RlktWarehousePublisher": {
       "commandName": "Project",
-      "commandLineArgs": "127.0.0.1 9666  1 1 RlktWarehousePublisher.pdb"
+      "commandLineArgs": "gls.ralukat.eu 9666 0 true M:\\x2project\\X2Lib\\DebugWarehouse\\RlktWarehouseVersion.h .\\ConsoleApplication1.exe"
     }
   }
 }

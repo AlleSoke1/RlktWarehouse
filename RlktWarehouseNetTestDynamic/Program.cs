@@ -22,7 +22,7 @@ namespace RlktWarehouseNetTestDynamic
 
         static void Main(string[] args)
         {
-            Initialize(0, 1, "127.0.0.1", 9666);
+            Initialize(0, 0, "gls.ralukat.eu", 9666);
 
             while (true)
             {

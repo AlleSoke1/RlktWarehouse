@@ -1,8 +1,6 @@
 #include <Windows.h>
 #include "WarehouseLib.h"
 
-#pragma comment(lib, "RlktWarehouseUpdaterLib.lib")
-
 int main()
 {
 	Initialize(0, 1, "127.0.0.1", 9666);

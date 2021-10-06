@@ -1,28 +1,70 @@
 ﻿using System;
 using System.IO;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 
 namespace RlktWarehousePublisher
 {
     internal class Program
     {
+        static int GetVersionFromFile(string filePath)
+        {
+            int version = 0;
+
+            var text = File.ReadAllText(filePath);
+
+            string pattern = @"[0-9]+";
+            Regex rg = new Regex(pattern);
+            MatchCollection matchCollection = rg.Matches(text);
+
+            if (matchCollection.Count > 0)
+            {
+                int.TryParse(matchCollection[0].Value, out version);
+            }
+
+            return version;
+        }
+
+        static bool SetVersionToFile(string filePath, int nVersion)
+        {
+            bool bResult = false;
+
+            File.WriteAllText(filePath, String.Format("static const int g_whAppVersion = {0:D};", nVersion));
+
+            return bResult;
+        }
+
         static void Main(string[] args)
         {
-            if (args.Length != 5)
+            if (args.Length != 6)
             {
-                Console.WriteLine("Usage: RlktWarehousePublisher.exe <ip> <port> <appid> <version> <executablePath>");
+                Console.WriteLine("Usage: RlktWarehousePublisher.exe <ip> <port> <appid> <increaseVersion?> <versionPath> <executablePath>");
                 return;
             }
 
             string ip       = args[0];
             string port     = args[1]; 
             string appId    = args[2]; 
-            string version  = args[3]; 
-            string exePath  = args[4];
+            bool verInc     = bool.Parse(args[3]); 
+            string verPath  = args[4]; 
+            string exePath  = args[5];
 
             if(File.Exists(exePath) == false)
             {
-                Console.WriteLine("Could not open file {0:s}.", exePath);
+                Console.WriteLine("[Executable] Could not open file {0:s}.", exePath);
+                return;
+            }
+
+            if (File.Exists(verPath) == false)
+            {
+                Console.WriteLine("[Version] Could not open file {0:s}.", verPath);
+                return;
+            }
+
+            int version = GetVersionFromFile(verPath);
+            if(version == 0)
+            {
+                Console.WriteLine("[Version] Could not get version from file {0:s}.", verPath);
                 return;
             }
 
@@ -55,7 +97,7 @@ namespace RlktWarehousePublisher
                     bw.Write(7);
                     bw.Write(1234); //Placeholder, to be written at the end.
                     bw.Write(int.Parse(appId));
-                    bw.Write(int.Parse(version));
+                    bw.Write(version);
                     bw.Write(fileName);
                     bw.Write(isCompressed);
                     bw.Write(fileData.Length);
@@ -83,11 +125,17 @@ namespace RlktWarehousePublisher
 
                     if (result)
                     {
-                        Console.WriteLine("Successful published app with version [{0:s}].", version);
+                        Console.WriteLine("Successful published app with version [{0:d}].", version);
+                        
+                        if (verInc)
+                        {
+                            version++;
+                            SetVersionToFile(verPath, version);
+                        }
                     }
                     else
                     {
-                        Console.WriteLine("Failed publishing app with version [{0:s}].", version);
+                        Console.WriteLine("Failed publishing app with version [{0:d}].", version);
                     }
                 }
 

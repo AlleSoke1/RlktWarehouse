@@ -10,6 +10,7 @@ namespace RlktWarehouseServer
     {
         public static int PACKET_HEADER_SIZE        = 8;
         public static int MAX_WPACKET_SIZE          = 65536;
+        public static int MAX_WPACKET_BIG_SIZE      = 50*1024*1024;
         public static int MAX_WPACKET_SIZE_ENCAP    = MAX_WPACKET_SIZE - PACKET_HEADER_SIZE;
 
         public static string GetRandomName()

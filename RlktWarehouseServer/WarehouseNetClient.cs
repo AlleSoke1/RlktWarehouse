@@ -86,8 +86,7 @@ namespace RlktWarehouseServer
         private void RecvThread()
         {
             int requestCount = 0;
-            byte[] data = new byte[Utils.MAX_WPACKET_SIZE];
-            //RlktWriter writer = new RlktWriter();
+            byte[] data = new byte[Utils.MAX_WPACKET_BIG_SIZE];
             int offset = 0;
             Queue<(int, byte[])> qPackets = new Queue<(int, byte[])>();
 
@@ -101,7 +100,7 @@ namespace RlktWarehouseServer
                         break;
 
                     NetworkStream networkStream = clientSocket.GetStream();
-                    int readSize = networkStream.Read(data, 0, (int)Utils.MAX_WPACKET_SIZE);
+                    int readSize = networkStream.Read(data, 0, (int)Utils.MAX_WPACKET_BIG_SIZE);
                     if (readSize <= 0)
                         continue;
              
@@ -125,6 +124,7 @@ namespace RlktWarehouseServer
                     for (int i = 0; i < qPackets.Count; i++)
                     {
                         (int,byte[]) packet = qPackets.Dequeue();
+
                         //Process the packet
                         if (OnRecvPacket((WEPacketType)packet.Item1, packet.Item2) == false)
                         {

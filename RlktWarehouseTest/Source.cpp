@@ -13,7 +13,7 @@
 #define AppID 0
 #define AppVersion 1
 
-#define IpAddr "127.0.0.1"
+#define IpAddr "gls.ralukat.eu"
 #define Port 9666
 
 #pragma comment(lib, "wsock32.lib")
